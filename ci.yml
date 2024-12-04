@@ -1,1 +1,46 @@
+name: Node.js CI/CD
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때마다 자동으로 실행
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # GitHub에서 제공하는 최신 Ubuntu 환경에서 실행
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # GitHub 리포지토리에서 코드를 클론
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2  # Node.js 설정
+        with:
+          node-version: '14'  # 사용할 Node.js 버전 설정
+
+      - name: Install dependencies
+        run: npm install  # 의존성 설치
+
+      - name: Run tests
+        run: npm test  # (선택 사항) 테스트 실행
+
+  deploy:
+    runs-on: ubuntu-latest  # EC2에 배포 작업을 진행할 환경
+    needs: build  # build 작업이 완료되어야 deploy 작업이 시작됨
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # GitHub 리포지토리에서 코드를 클론
+
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.7  # SSH를 통해 EC2 서버에 배포
+        with:
+          host: ${{ secrets.EC2_HOST }}  # EC2의 퍼블릭 IP
+          username: ${{ secrets.EC2_USERNAME }}  # EC2의 사용자 이름 (보통 'ec2-user')
+          key: ${{ secrets.EC2_PRIVATE_KEY }}  # EC2의 프라이빗 키 (GitHub Secrets에 저장)
+          script: |
+            cd /path/to/your/app  # EC2에서 애플리케이션 디렉토리로 이동
+            git pull origin main  # 최신 코드로 업데이트
+            npm install  # 의존성 설치
+            pm2 restart app.js  # 애플리케이션을 PM2로 재시작
 
